@@ -123,26 +123,53 @@ bool LsqRegistration<PointTarget, PointSource>::step_gn(Eigen::Isometry3d& x0, E
 
 template <typename PointTarget, typename PointSource>
 bool LsqRegistration<PointTarget, PointSource>::step_lm(Eigen::Isometry3d& x0, Eigen::Isometry3d& delta) {
+
   Eigen::Matrix<double, 6, 6> H;
   Eigen::Matrix<double, 6, 1> b;
-  double y0 = linearize(x0, &H, &b);
+  Eigen::Matrix<double, 3, 3> H_constrained;
+  Eigen::Matrix<double, 3, 1> b_constrained;
+  // double y0 = linearize(x0, &H, &b);
+  double y0 = linearize_2D(x0, &H_constrained, &b_constrained);
 
   if (lm_lambda_ < 0.0) {
-    lm_lambda_ = lm_init_lambda_factor_ * H.diagonal().array().abs().maxCoeff();
+    // lm_lambda_ = lm_init_lambda_factor_ * H.diagonal().array().abs().maxCoeff();
+    lm_lambda_ = lm_init_lambda_factor_ * H_constrained.diagonal().array().abs().maxCoeff();
   }
 
   double nu = 2.0;
   for (int i = 0; i < lm_max_iterations_; i++) {
-    Eigen::LDLT<Eigen::Matrix<double, 6, 6>> solver(H + lm_lambda_ * Eigen::Matrix<double, 6, 6>::Identity());
-    Eigen::Matrix<double, 6, 1> d = solver.solve(-b);
+    // Eigen::Matrix<double, 4, 4> H_constrained = H.block<4, 4>(1, 1);
+    // Eigen::Matrix<double, 4, 1> b_constrained = b.block<4, 1>(1, 0);
+    // Eigen::LDLT<Eigen::Matrix<double, 6, 6>> solver(H + lm_lambda_ * Eigen::Matrix<double, 6, 6>::Identity());
+    // Eigen::Matrix<double, 6, 1> d = solver.solve(-b);
+    // Eigen::LDLT<Eigen::Matrix<double, 4, 4>> solver(H_constrained + lm_lambda_ * Eigen::Matrix<double, 4, 4>::Identity());
+    // Eigen::Matrix<double, 4, 1> d = solver.solve(-b_constrained);
+    Eigen::LDLT<Eigen::Matrix<double, 3, 3>> solver(H_constrained + lm_lambda_ * Eigen::Matrix<double, 3, 3>::Identity());
+    Eigen::Matrix<double, 3, 1> d = solver.solve(-b_constrained);
+
+    Eigen::Vector3d rpy;
+    rpy.setZero();
+    rpy(2) = d(0);
+    // rpy(2) = d(1);
+    Eigen::Vector3d xyz;
+    xyz.setZero();
+    xyz(0) = d(1);
+    // xyz(0) = d(2);
+    xyz(1) = d(2);
+    // xyz(1) = d(3);
 
     delta.setIdentity();
-    delta.linear() = so3_exp(d.head<3>()).toRotationMatrix();
-    delta.translation() = d.tail<3>();
+    // delta.linear() = so3_exp(d.head<3>()).toRotationMatrix();
+    delta.linear() = so3_exp(rpy).toRotationMatrix();
+    // delta.translation() = d.tail<3>();
+    delta.translation() = xyz;
 
     Eigen::Isometry3d xi = delta * x0;
-    double yi = compute_error(xi);
-    double rho = (y0 - yi) / (d.dot(lm_lambda_ * d - b));
+
+    // double yi = compute_error(xi);
+    double yi = compute_error_2D(xi);
+    // double rho = (y0 - yi) / (d.dot(lm_lambda_ * d - b));
+    double rho = (y0 - yi) / (d.dot(lm_lambda_ * d - b_constrained));
 
     if (lm_debug_print_) {
       if (i == 0) {
@@ -164,7 +191,7 @@ bool LsqRegistration<PointTarget, PointSource>::step_lm(Eigen::Isometry3d& x0, E
 
     x0 = xi;
     lm_lambda_ = lm_lambda_ * std::max(1.0 / 3.0, 1 - std::pow(2 * rho - 1, 3));
-    final_hessian_ = H;
+    // final_hessian_ = H;
     return true;
   }
 

@@ -66,7 +66,9 @@ protected:
   bool is_converged(const Eigen::Isometry3d& delta) const;
 
   virtual double linearize(const Eigen::Isometry3d& trans, Eigen::Matrix<double, 6, 6>* H = nullptr, Eigen::Matrix<double, 6, 1>* b = nullptr) = 0;
+  virtual double linearize_2D(const Eigen::Isometry3d& trans, Eigen::Matrix<double, 3, 3>* H = nullptr, Eigen::Matrix<double, 3, 1>* b = nullptr) = 0;
   virtual double compute_error(const Eigen::Isometry3d& trans) = 0;
+  virtual double compute_error_2D(const Eigen::Isometry3d& trans) = 0;
 
   bool step_optimize(Eigen::Isometry3d& x0, Eigen::Isometry3d& delta);
   bool step_gn(Eigen::Isometry3d& x0, Eigen::Isometry3d& delta);

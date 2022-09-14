@@ -75,11 +75,13 @@ protected:
   virtual void update_correspondences(const Eigen::Isometry3d& trans);
 
   virtual double linearize(const Eigen::Isometry3d& trans, Eigen::Matrix<double, 6, 6>* H, Eigen::Matrix<double, 6, 1>* b) override;
+  virtual double linearize_2D(const Eigen::Isometry3d& trans, Eigen::Matrix<double, 3, 3>* H, Eigen::Matrix<double, 3, 1>* b) override;
 
   virtual double compute_error(const Eigen::Isometry3d& trans) override;
+  virtual double compute_error_2D(const Eigen::Isometry3d& trans) override;
 
   template<typename PointT>
-  bool calculate_covariances(const typename pcl::PointCloud<PointT>::ConstPtr& cloud, pcl::search::KdTree<PointT>& kdtree, std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& covariances);
+  bool calculate_covariances(const typename pcl::PointCloud<PointT>::ConstPtr& cloud, pcl::search::KdTree<PointT>& kdtree, std::vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d>>& covariances, bool is_source);
 
 protected:
   int num_threads_;
